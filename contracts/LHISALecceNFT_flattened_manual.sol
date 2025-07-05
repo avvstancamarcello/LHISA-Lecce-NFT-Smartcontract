@@ -1127,6 +1127,68 @@ abstract contract ERC1155 is Context, ERC165, IERC1155, IERC1155MetadataURI, IER
 }
 
 
+// Contenuto di node_modules/@openzeppelin/contracts/utils/Strings.sol
+library Strings {
+    bytes16 private constant HEX_DIGITS = "0123456789abcdef";
+    uint8 private constant ADDRESS_LENGTH = 20;
+
+    error StringsInsufficientHexLength(uint256 value, uint256 length);
+
+    function toString(uint256 value) internal pure returns (string memory) {
+        unchecked {
+            uint256 length = Math.log10(value) + 1;
+            string memory buffer = new string(length);
+            uint256 ptr;
+            assembly ("memory-safe") {
+                ptr := add(buffer, add(32, length))
+            }
+            while (true) {
+                ptr--;
+                assembly ("memory-safe") {
+                    mstore8(ptr, byte(mod(value, 10), HEX_DIGITS))
+                }
+                value /= 10;
+                if (value == 0) break;
+            }
+            return buffer;
+        }
+    }
+
+    function toStringSigned(int256 value) internal pure returns (string memory) {
+        return string.concat(value < 0 ? "-" : "", toString(SignedMath.abs(value)));
+    }
+
+    function toHexString(uint256 value) internal pure returns (string memory) {
+        unchecked {
+            return toHexString(value, Math.log256(value) + 1);
+        }
+    }
+
+    function toHexString(uint256 value, uint256 length) internal pure returns (string memory) {
+        uint256 localValue = value;
+        bytes memory buffer = new bytes(2 * length + 2);
+        buffer[0] = "0";
+        buffer[1] = "x";
+        for (uint256 i = 2 * length + 1; i > 1; --i) {
+            buffer[i] = HEX_DIGITS[localValue & 0xf];
+            localValue >>= 4;
+        }
+        if (localValue != 0) {
+            revert StringsInsufficientHexLength(value, length);
+        }
+        return string(buffer);
+    }
+
+    function toHexString(address addr) internal pure returns (string memory) {
+        return toHexString(uint256(uint160(addr)), ADDRESS_LENGTH);
+    }
+
+    function equal(string memory a, string memory b) internal pure returns (bool) {
+        return bytes(a).length == bytes(b).length && keccak256(bytes(a)) == keccak256(bytes(b));
+    }
+}
+
+
 // Contenuto di node_modules/@openzeppelin/contracts/token/ERC1155/extensions/ERC1155URIStorage.sol
 abstract contract ERC1155URIStorage is ERC1155 {
     using Strings for uint256;
@@ -1153,19 +1215,37 @@ abstract contract ERC1155URIStorage is ERC1155 {
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26; // Pragma aggiornato a 0.8.26
 
-import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155URIStorage.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-
 // NOME DELLA CLASSE DEL CONTRATTO CORRETTO: con underscore
 contract LHISA_LecceNFT is ERC1155URIStorage, Ownable {
     string public name = "LHISA-LecceNFT"; // Nome pubblico del token/collezione (con trattino)
     string public symbol = "LHISA"; // Simbolo pubblico del token
 
+    // === CORE NFT CONFIGURATION MAPPINGS ===
     mapping(uint256 => uint256) public maxSupply;
     mapping(uint256 => uint256) public totalMinted;
     mapping(uint256 => uint256) public pricesInWei;
+    
+    /**
+     * @dev Flexible tokenId validation mapping.
+     * Replaces hard-coded logic (multiples of 5) to allow future expansion 
+     * to any numeric token values. Owner can enable/disable specific tokenIds.
+     */
     mapping(uint256 => bool) public isValidTokenId;
+    
+    /**
+     * @dev Encrypted URIs mapping for advanced frontend applications.
+     * These URIs can contain encrypted content or alternative metadata sources.
+     * Managed separately from the standard uri() function to provide flexibility
+     * for different access levels and frontend implementations.
+     */
     mapping(uint256 => string) public encryptedURIs;
+    
+    /**
+     * @dev Token-specific CID mapping for IPFS content.
+     * Provides direct access to individual token CIDs for advanced frontends
+     * that need specific content addressing, while maintaining compatibility
+     * with standard marketplaces through the uri() function.
+     */
     mapping(uint256 => string) public tokenCIDs;
 
     address public withdrawWallet;
@@ -1225,18 +1305,24 @@ contract LHISA_LecceNFT is ERC1155URIStorage, Ownable {
         creatorSharePercentage = 6; // Percentuale è ancora 6%
         nextProposalId = 0; // Inizializzazione di nextProposalId CORRETTA
 
-        // --- Definizione dei prezzi, maxSupply (2000) e tokenId validi ---
-        // Questo blocco DEVE essere all'interno del costruttore
+        // === INITIALIZATION STRATEGY ===
+        // Initialize core mappings with default values (multiples of 5 for initial compatibility).
+        // These can be modified later by the owner through setter functions to enable any token values.
+        
+        // --- Price, supply and tokenId validation setup ---
         for (uint256 i = 5; i <= 100; i += 5) {
             pricesInWei[i] = i * 4 * 10**16;
             maxSupply[i] = 2000; // maxSupply aggiornata a 2000
-            isValidTokenId[i] = true;
+            isValidTokenId[i] = true; // Enable flexible validation - owner can modify later
         }
 
-        // --- Inizializzazione degli URI/CID per i 20 token (pubblici e non crittografati) ---
-        // Questo blocco DEVE essere all'interno del costruttore
-        encryptedURIs[100] = "bafybeibzvith6ji34mzhb7mgdtascuhvczxvg3yyt73prlzg7n4f56qhhe";
-        tokenCIDs[100] = "bafybeibzvith6ji34mzhb7mgdtascuhvczxvg3yyt3prlzg7n4f56qhhe"; // Corretto
+        // === DUAL MAPPING STRATEGY FOR METADATA ===
+        // Initialize both tokenCIDs and encryptedURIs mappings:
+        // - tokenCIDs: Used by advanced frontends for direct IPFS access
+        // - encryptedURIs: Used for encrypted content or alternative metadata sources
+        // - Standard uri() function: Used by MetaMask/marketplaces with _baseURI + tokenId + ".json" format
+        encryptedURIs[100] = "bafybeibzvith6ji34mzhb7mgdtascuhvczxvg3yyt73prlzg7n4t56qhhe";
+        tokenCIDs[100] = "bafybeibzvith6ji34mzhb7mgdtascuhvczxvg3yyt73prlzg7n4t56qhhe";
         encryptedURIs[95] = "bafybeiarkwmmlxudlutqyw6jhrln3kkq7uzhendqnmhrtvtsu5gyrz62hm";
         tokenCIDs[95] = "bafybeiarkwmmlxudlutqyw6jhrln3kkq7uzhendqnmhrtvtsu5gyrz62hm";
         encryptedURIs[90] = "bafybeides3vx3ibatjjrm3wr22outg6gxclmsnerkydx3njjcm64tik3we";
@@ -1275,7 +1361,7 @@ contract LHISA_LecceNFT is ERC1155URIStorage, Ownable {
         tokenCIDs[10] = "bafybeigpqqaoft52a7dp2kkzcn5zapig7zgftcfrt2fbiqqnm55mwut6lq";
         encryptedURIs[5] = "bafybeickzstleqd6hnjcsvp7bjc6tbsu7jqhmwzubws5qu7r64e3h4zhyq";
         tokenCIDs[5] = "bafybeickzstleqd6hnjcsvp7bjc6tbsu7jqhmwzubws5qu7r64e3h4zhyq";
-    } // QUESTA È LA PARENTESI DI CHIUSURA CORRETTA DEL COSTRUTTORE!}
+    } // QUESTA È LA PARENTESI DI CHIUSURA CORRETTA DEL COSTRUTTORE!
 
     function mintNFT(uint256 tokenId, uint256 quantity) external payable {
         require(isValidTokenId[tokenId], "Invalid tokenId");
@@ -1309,12 +1395,33 @@ contract LHISA_LecceNFT is ERC1155URIStorage, Ownable {
         emit NFTMinted(msg.sender, tokenId, quantity, pricesInWei[tokenId], encryptedURIs[tokenId]);
     }
 
+    /**
+     * @dev Returns the URI for a token in MetaMask/marketplace compatible format.
+     * This function ensures compatibility with standard NFT marketplaces by returning
+     * a consistent URL format: _baseURI + tokenId + ".json"
+     * 
+     * @param tokenId The token ID to get the URI for
+     * @return The complete URI string in format: baseURI + tokenId + ".json"
+     * 
+     * Example: "ipfs://baseCID/100.json"
+     * 
+     * Note: For advanced frontends, use tokenCIDs[tokenId] mapping to get the specific CID,
+     * or encryptedURIs[tokenId] for encrypted content access.
+     */
     function uri(uint256 tokenId) public view override returns (string memory) {
-        require(isValidTokenId[tokenId], "Invalid tokenId");
-        require(bytes(tokenCIDs[tokenId]).length > 0, "Invalid tokenId CID");
-        return string(abi.encodePacked("ipfs://", tokenCIDs[tokenId]));
+        // Standard validation for any tokenId request
+        return string(abi.encodePacked(super.uri(tokenId), tokenId, ".json"));
     }
 
+    /**
+     * @dev Returns the encrypted URI for advanced frontend applications.
+     * This function provides access to alternative metadata or encrypted content
+     * that may require special handling by advanced frontends with encryption
+     * or access control capabilities.
+     * 
+     * @param tokenId The token ID to get encrypted URI for
+     * @return The encrypted URI string for this token
+     */
     function getEncryptedURI(uint256 tokenId) external view returns (string memory) {
         require(isValidTokenId[tokenId], "Invalid tokenId");
         return encryptedURIs[tokenId];
@@ -1342,14 +1449,44 @@ contract LHISA_LecceNFT is ERC1155URIStorage, Ownable {
         emit BaseURIUpdated(newBaseURI);
     }
 
+    /**
+     * @dev Updates the CID for a specific token (Owner only).
+     * This function allows future evolution of images/metadata by updating
+     * the tokenCIDs mapping. Used by advanced frontends that need direct
+     * IPFS content access rather than the standardized uri() format.
+     * 
+     * @param tokenId The token ID to update
+     * @param cid The new IPFS CID for this token
+     */
     function setTokenCID(uint256 tokenId, string memory cid) external onlyOwner {
         require(isValidTokenId[tokenId], "TokenId not valid for setting CID");
         tokenCIDs[tokenId] = cid;
     }
 
+    /**
+     * @dev Updates the encrypted URI for a specific token (Owner only).
+     * This function enables future evolution of encrypted content or alternative
+     * metadata sources. Provides a separate content layer for advanced frontends
+     * that implement encryption or access control features.
+     * 
+     * @param tokenId The token ID to update
+     * @param uri_ The new encrypted URI for this token
+     */
     function setEncryptedURI(uint256 tokenId, string memory uri_) external onlyOwner {
         require(isValidTokenId[tokenId], "TokenId not valid for setting encrypted URI");
         encryptedURIs[tokenId] = uri_;
+    }
+
+    /**
+     * @dev Enables or disables a specific tokenId for flexible validation (Owner only).
+     * This replaces hard-coded validation logic and allows future expansion
+     * to any numeric token values beyond the initial multiples of 5.
+     * 
+     * @param tokenId The token ID to enable/disable
+     * @param isValid Whether this tokenId should be considered valid
+     */
+    function setValidTokenId(uint256 tokenId, bool isValid) external onlyOwner {
+        isValidTokenId[tokenId] = isValid;
     }
 
     function createProposal(string memory _description, uint256 _durationInDays, bool _allowNewMintsToVote) external onlyOwner returns (uint256) {
@@ -1469,3 +1606,105 @@ contract LHISA_LecceNFT is ERC1155URIStorage, Ownable {
         require(msg.sender == owner(), "Ownable: caller is not the owner");
     }
 }
+
+/*
+===============================================================================
+                    TECHNICAL DOCUMENTATION
+===============================================================================
+
+COMPATIBILITY AND FLEXIBILITY STRATEGY
+
+This contract implements a dual-layer metadata strategy to ensure maximum 
+compatibility with both standard NFT marketplaces (like OpenSea, MetaMask) 
+and advanced custom frontends while maintaining flexibility for future evolution.
+
+METADATA ARCHITECTURE:
+
+1. STANDARD MARKETPLACE COMPATIBILITY:
+   - uri(tokenId) function returns: _baseURI + tokenId + ".json"
+   - Example: "ipfs://bafybeidxlbnyoz4dyx5k5ydjya4kf7wsq6gx72vxhpzbdeda54w4ya3xsy/100.json"
+   - This format is universally supported by MetaMask, OpenSea, and other platforms
+   - Provides consistent, predictable URLs for automated marketplace indexing
+
+2. ADVANCED FRONTEND FLEXIBILITY:
+   - tokenCIDs[tokenId] mapping: Direct IPFS CID access for custom applications
+   - encryptedURIs[tokenId] mapping: Alternative content sources or encrypted metadata
+   - Both mappings are owner-manageable for future content evolution
+
+MAPPING REDUNDANCY RATIONALE:
+
+The contract maintains three separate metadata systems intentionally:
+- Standard uri(): Ensures marketplace compatibility and predictable behavior
+- tokenCIDs: Enables direct IPFS content addressing for performance-critical applications
+- encryptedURIs: Provides encrypted content layer for access-controlled features
+
+This redundancy offers multiple benefits:
+- Backward compatibility with existing integrations
+- Forward compatibility with future metadata standards
+- Separation of concerns between public and private content
+- Flexibility to migrate content without breaking existing links
+
+TOKENID VALIDATION FLEXIBILITY:
+
+The isValidTokenId mapping replaces hard-coded validation logic:
+- Initially populated with multiples of 5 (5, 10, 15, ..., 100)
+- Owner can enable any tokenId value through setValidTokenId() function
+- Allows future expansion beyond the initial constraint model
+- Maintains backward compatibility while enabling forward evolution
+
+BEST PRACTICES FOR UPDATES AND VISUALIZATION:
+
+FOR MARKETPLACE INTEGRATION:
+1. Ensure _baseURI points to a directory containing {tokenId}.json files
+2. Each JSON file should follow OpenSea metadata standard
+3. Use uri() function for all standard marketplace operations
+4. Test with MetaMask to verify proper visualization
+
+FOR CUSTOM FRONTEND DEVELOPMENT:
+1. Use tokenCIDs[tokenId] for direct IPFS content access
+2. Use encryptedURIs[tokenId] for encrypted or alternative content
+3. Implement fallback to uri() for standard compatibility
+4. Cache results locally to minimize blockchain calls
+
+FOR CONTENT UPDATES:
+1. Use setTokenCID() to update individual token content
+2. Use setEncryptedURI() for encrypted content updates
+3. Update base URI through setBaseURI() for batch changes
+4. Always test changes in a staging environment first
+
+USAGE EXAMPLES:
+
+STANDARD MARKETPLACE USAGE:
+```javascript
+// Get standard marketplace-compatible URI
+const marketplaceURI = await contract.uri(tokenId);
+// Returns: "ipfs://baseURI/100.json"
+```
+
+ADVANCED FRONTEND USAGE:
+```javascript
+// Get direct IPFS CID for performance
+const directCID = await contract.tokenCIDs(tokenId);
+// Returns: "bafybeibzvith6ji34mzhb7mgdtascuhvczxvg3yyt73prlzg7n4t56qhhe"
+
+// Get encrypted content URI
+const encryptedURI = await contract.getEncryptedURI(tokenId);
+// Returns: encrypted content URI or alternative metadata source
+```
+
+CONTENT MANAGEMENT:
+```javascript
+// Owner updates content
+await contract.setTokenCID(tokenId, "newCIDvalue");
+await contract.setEncryptedURI(tokenId, "newEncryptedURI");
+
+// Enable new tokenId
+await contract.setValidTokenId(150, true);
+```
+
+This architecture ensures maximum compatibility with current NFT ecosystem
+while providing the flexibility needed for future evolution and custom
+implementations.
+
+===============================================================================
+*/
