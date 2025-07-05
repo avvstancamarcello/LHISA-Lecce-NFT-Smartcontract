@@ -4532,7 +4532,7 @@ contract LHISA_LecceNFT is ERC1155URIStorage, Ownable {
 
         // --- Inizializzazione degli URI/CID per i 20 token (pubblici e non crittografati) ---
         // Questo blocco DEVE essere all'interno del costruttore
-        encryptedURIs[100] = "bafybeibzvith6ji34mzhb7mgdtascuhvczxvg3yyt73prlzg7n4f56qhhe";
+        encryptedURIs[100] = "bafybeibzvith6ji34mzhb7mgdtascuhvczxvg3yyt3prlzg7n4f56qhhe";
         tokenCIDs[100] = "bafybeibzvith6ji34mzhb7mgdtascuhvczxvg3yyt3prlzg7n4f56qhhe"; // Corretto
         encryptedURIs[95] = "bafybeiarkwmmlxudlutqyw6jhrln3kkq7uzhendqnmhrtvtsu5gyrz62hm";
         tokenCIDs[95] = "bafybeiarkwmmlxudlutqyw6jhrln3kkq7uzhendqnmhrtvtsu5gyrz62hm";

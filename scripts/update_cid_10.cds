@@ -16,7 +16,7 @@ async function main() {
 
     // --- CID per TokenID 100 ---
     const TOKEN_ID_100 = 100;
-    const NEW_CID_100 = "bafybeibzvith6ji34mzhb7mgdtascuhvczxvg3yyt73prlzg7n4t56qhhe";
+    const NEW_CID_100 = "bafybeibzvith6ji34mzhb7mgdtascuhvczxvg3yyt3prlzg7n4f56qhhe";
 
     console.log("------------------------------------------");
     console.log("Inizio aggiornamento CID per Token ID 10 e 100...");
