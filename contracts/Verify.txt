@@ -1,0 +1,67 @@
+ti ricordo che ieri abbiamo costruito insieme, in questa chat il file flattenato. Tu mi hai inviato cinque blocchi di codice che io ho ricomposto nel file flattenato, senza vedove ed orfane. Nella costruzione del file hai rispettato la gerarchia delle dipendenze tra le librerie. il file flattenato è già corretto. Quindi ti ripropongo la domanda : se è necessario inserire l'intestazione del contratto, cioè le prime righe, una volta sola,  per mantenere la corrispondenza delle dimensioni tra file.sol e file flattenato, appare obbligatorio trascrivere l'intero contratto all'inizio del file flattenato, senza spezzare l'unità del file-codice sol, nè  le dimendioni del codice. così l'intestazione potrà riferirsi a tutto il contenuto successivo del file, che riporta le librerie. In alternativa, dovresti rassicurarmi che l'EVM di Polygon, dopo il deploy del file flattenato, sarà in grado di ricomporre l'intestazione dello smart contract, posta all'inizio del file flattenato, con il suo codice, che invece sarà nella posizione finale del file flatteato. Dimmi se questo frazionamento del file .sol (4 righe all'inizio e tutto il codice residuo alla fine) sarà tollerato dal procedimento di verifica di Polygonscan, e la verifa non fallirà per mancata corrispondenza delle dimensioni del codice deployato.
+
+// Contenuto corretto del costruttore nel file contracts/LHISA_LecceNFT.sol
+    constructor(string memory _baseURI, address _ownerAddress, address _creatorWalletAddress)
+        ERC1155(_baseURI)
+        Ownable(_ownerAddress) // Owner è il parametro _ownerAddress
+    {
+        require(bytes(_baseURI).length > 0, "Base URI cannot be empty");
+        require(_ownerAddress != address(0), "Owner address cannot be zero"); // Controllo aggiuntivo
+        require(_creatorWalletAddress != address(0), "Creator wallet address cannot be zero"); // Controllo aggiuntivo
+
+        withdrawWallet = _ownerAddress; // withdrawWallet coincide con l'owner (deployer)
+        creatorWallet = _creatorWalletAddress; // creatorWallet è passato come parametro
+        creatorSharePercentage = 6; // Percentuale è ancora 6%
+        nextProposalId = 0; // Inizializzazione di nextProposalId CORRETTA
+
+        // --- Definizione dei prezzi, maxSupply (2000) e tokenId validi ---
+        // Questo blocco DEVE essere all'interno del costruttore
+        for (uint256 i = 5; i <= 100; i += 5) {
+            pricesInWei[i] = i * 4 * 10**16;
+            maxSupply[i] = 2000; // maxSupply aggiornata a 2000
+            isValidTokenId[i] = true;
+        }
+
+        // --- Inizializzazione degli URI/CID per i 20 token (pubblici e non crittografati) ---
+        // Questo blocco DEVE essere all'interno del costruttore
+        encryptedURIs[100] = "bafybeibzvith6ji34mzhb7mgdtascuhvczxvg3yyt73prlzg7n4f56qhhe";
+        tokenCIDs[100] = "bafybeibzvith6ji34mzhb7mgdtascuhvczxvg3yyt3prlzg7n4f56qhhe"; // Corretto
+        encryptedURIs[95] = "bafybeiarkwmmlxudlutqyw6jhrln3kkq7uzhendqnmhrtvtsu5gyrz62hm";
+        tokenCIDs[95] = "bafybeiarkwmmlxudlutqyw6jhrln3kkq7uzhendqnmhrtvtsu5gyrz62hm";
+        encryptedURIs[90] = "bafybeides3vx3ibatjjrm3wr22outg6gxclmsnerkydx3njjcm64tik3we";
+        tokenCIDs[90] = "bafybeides3vx3ibatjjrm3wr22outg6gxclmsnerkydx3njjcm64tik3we";
+        encryptedURIs[85] = "bafybeif4pdz2jhwlgnnonqti7reqyvszwjja45uimijzd47coilmj6jmvm";
+        tokenCIDs[85] = "bafybeif4pdz2jhwlgnnonqti7reqyvszwjja45uimijzd47coilmj6jmvm";
+        encryptedURIs[80] = "bafybeiboe3heopn3ki57hkbdkb4uep6mvbwlcyh4q6frcl2fqnmucswp3u";
+        tokenCIDs[80] = "bafybeiboe3heopn3ki57hkbdkb4uep6mvbwlcyh4q6frcl2fqnmucswp3u";
+        encryptedURIs[75] = "bafybeicgqdtiilzd23o2hhvb2kxfshjnyvxnwcic7eyftjfpalkokvm7di";
+        tokenCIDs[75] = "bafybeicgqdtiilzd23o2hhvb2kxfshjnyvxnwcic7eyftjfpalkokvm7di";
+        encryptedURIs[70] = "bafybeih6gfu4hss72sqjoszdsla6mioo2fbaam2jeqn7y6saihydtvjqam";
+        tokenCIDs[70] = "bafybeih6gfu4hss72sqjoszdsla6mioo2fbaam2jeqn7y6saihydtvjqam";
+        encryptedURIs[65] = "bafybeidyqyawcirrqbauf3daygvgmoqzq63duhsl6auw7fbfma4xlnj7cy";
+        tokenCIDs[65] = "bafybeidyqyawcirrqbauf3daygvgmoqzq63duhsl6auw7fbfma4xlnj7cy";
+        encryptedURIs[60] = "bafybeift6clex5dhe6unqqhcstdn4l3votj5uvuoiwpa5rwlsh6jovpeti";
+        tokenCIDs[60] = "bafybeift6clex5dhe6unqqhcstdn4l3votj5uvuoiwpa5rwlsh6jovpeti";
+        encryptedURIs[55] = "bafybeihhmmci3qjz55j3g5y33yhszt5fpbwmsnx4fbzklgkyofhsxn3bte";
+        tokenCIDs[55] = "bafybeihhmmci3qjz55j3g5y33yhszt5fpbwmsnx4fbzklgkyofhsxn3bte";
+        encryptedURIs[50] = "bafybeiaexxgiukd46px63gjvggltykt3uoqs74ryvj5x577uvge66ntr2q";
+        tokenCIDs[50] = "bafybeiaexxgiukd46px63gjvggltykt3uoqs74ryvj5x577uvge66ntr2q";
+        encryptedURIs[45] = "bafybeicspxdws7au6kdms6lfpfhggqxdpfkrzmrvsue7kvii5ncfk7d7tq";
+        tokenCIDs[45] = "bafybeicspxdws7au6kdms6lfpfhggqxdpfkrzmrvsue7kvii5ncfk7d7tq";
+        encryptedURIs[40] = "bafybeibuga3bq442mvnqrjyazhbhd2k3oek3bgevaja7jxla5to72cqeri";
+        tokenCIDs[40] = "bafybeibuga3bq442mvnqrjyazhbhd2k3oek3bgevaja7jxla5to72cqeri";
+        encryptedURIs[35] = "bafybeif2titfww7kqsggfocbtmm6smu5qmw7hwthaahaxjc7xzs2yf5yqq";
+        tokenCIDs[35] = "bafybeif2titfww7kqsggfocbtmm6smu5qmw7hwthaahaxjc7xzs2yf5yqq";
+        encryptedURIs[30] = "bafybeieqbykqxdjskgch5vtgkucvyvrbjtucpid47lwa3r3aejjc3xvbda";
+        tokenCIDs[30] = "bafybeieqbykqxdjskgch5vtgkucvyvrbjtucpid47lwa3r3aejjc3xvbda";
+        encryptedURIs[25] = "bafybeibo26hejdplqocrgxtg33lgdasqjuzzwkbs6cdrg7hdrkhehskukm";
+        tokenCIDs[25] = "bafybeibo26hejdplqocrgxtg33lgdasqjuzzwkbs6cdrg7hdrkhehskukm";
+        encryptedURIs[20] = "bafybeibk63t4vnlqpimomeeylnam2b52qdfdcx5bcfdxqtyiod2d6qnomy";
+        tokenCIDs[20] = "bafybeibk63t4vnlqpimomeeylnam2b52qdfdcx5bcfdxqtyiod2d6qnomy";
+        encryptedURIs[15] = "bafybeiek35bzmmhop35isxwade6ezfgsb466mhwoxr27zfwlly7etvpqo4";
+        tokenCIDs[15] = "bafybeiek35bzmmhop35isxwade6ezfgsb466mhwoxr27zfwlly7etvpqo4";
+        encryptedURIs[10] = "bafybeigpqqaoft52a7dp2kkzcn5zapig7zgftcfrt2fbiqqnm55mwut6lq";
+        tokenCIDs[10] = "bafybeigpqqaoft52a7dp2kkzcn5zapig7zgftcfrt2fbiqqnm55mwut6lq";
+        encryptedURIs[5] = "bafybeickzstleqd6hnjcsvp7bjc6tbsu7jqhmwzubws5qu7r64e3h4zhyq";
+        tokenCIDs[5] = "bafybeickzstleqd6hnjcsvp7bjc6tbsu7jqhmwzubws5qu7r64e3h4zhyq";
+    } // QUESTA È LA PARENTESI DI CHIUSURA CORRETTA DEL COSTRUTTORE!

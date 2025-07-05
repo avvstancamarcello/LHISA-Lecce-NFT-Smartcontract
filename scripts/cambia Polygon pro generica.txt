@@ -1,0 +1,12 @@
+cambia Polygon
+
+ if (networkConfig && networkConfig.url) {
+        providerUrl = networkConfig.url;
+    } else if (hre.network.name === 'polygon' && process.env.QUICKNODE_MATIC_URL) {
+        providerUrl = process.env.QUICKNODE_MATIC_URL;
+        console.log(`URL RPC per la rete '${hre.network.name}' non trovato, utilizzo QUICKNODE_MATIC_URL da .env.`);
+    } else {
+        console.error(`URL RPC per la rete "${hre.network.name}" non trovato.`);
+        return;
+    }
+    console.log(`Utilizzo dell'URL RPC: ${providerUrl}`);
