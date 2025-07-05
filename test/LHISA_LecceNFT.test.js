@@ -85,6 +85,14 @@ describe("LHISA_LecceNFT", function () {
             expect(await contract.encryptedURIs(tokenId)).to.equal(tokenCID);
             expect(await contract.getEncryptedURI(tokenId)).to.equal(tokenCID);
         });
+
+        it("Dovrebbe avere il CID corretto per il token ID 100", async function () {
+            const tokenId = 100;
+            const expectedCID = "bafybeibzvith6ji34mzhb7mgdtascuhvczxvg3yyt3prlzg7n4f56qhhe";
+            expect(await contract.tokenCIDs(tokenId)).to.equal(expectedCID);
+            expect(await contract.encryptedURIs(tokenId)).to.equal(expectedCID);
+            expect(await contract.getEncryptedURI(tokenId)).to.equal(expectedCID);
+        });
     });
 
     describe("Funzionalità di Minting (mintNFT)", function () {
