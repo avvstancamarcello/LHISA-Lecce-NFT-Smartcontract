@@ -80,7 +80,7 @@ describe("LHISA_LecceNFT", function () {
             const tokenId = 50;
             const tokenCID = "bafybeiaexxgiukd46px63gjvggltykt3uoqs74ryvj5x577uvge66ntr2q";
             expect(await contract.tokenCIDs(tokenId)).to.equal(tokenCID);
-            expect(await contract.uri(tokenId)).to.equal(`ipfs://${tokenCID}`); 
+            expect(await contract.uri(tokenId)).to.equal(`${BASE_URI}${tokenId}.json`); 
 
             expect(await contract.encryptedURIs(tokenId)).to.equal(tokenCID);
             expect(await contract.getEncryptedURI(tokenId)).to.equal(tokenCID);
@@ -353,7 +353,7 @@ describe("LHISA_LecceNFT", function () {
             await expect(contract.connect(owner).setTokenCID(tokenId, newCID))
                 .to.not.be.reverted;
             expect(await contract.tokenCIDs(tokenId)).to.equal(newCID);
-            expect(await contract.uri(tokenId)).to.equal(`ipfs://${newCID}`); 
+            expect(await contract.uri(tokenId)).to.equal(`${BASE_URI}${tokenId}.json`); 
         });
 
         it("Dovrebbe permettere all'owner di impostare gli URI crittografati per i token", async function () {

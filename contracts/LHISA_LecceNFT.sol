@@ -3,11 +3,14 @@ pragma solidity ^0.8.26; // Pragma aggiornato a 0.8.26
 
 import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155URIStorage.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
 
 // NOME DELLA CLASSE DEL CONTRATTO CORRETTO: con underscore
 contract LHISA_LecceNFT is ERC1155URIStorage, Ownable {
     string public name = "LHISA-LecceNFT"; // Nome pubblico del token/collezione (con trattino)
     string public symbol = "LHISA"; // Simbolo pubblico del token
+
+    string private baseURI; // Store base URI for ERC-1155 compliant uri function
 
     mapping(uint256 => uint256) public maxSupply;
     mapping(uint256 => uint256) public totalMinted;
@@ -68,6 +71,7 @@ contract LHISA_LecceNFT is ERC1155URIStorage, Ownable {
         require(_ownerAddress != address(0), "Owner address cannot be zero"); // Controllo aggiuntivo
         require(_creatorWalletAddress != address(0), "Creator wallet address cannot be zero"); // Controllo aggiuntivo
 
+        baseURI = _baseURI; // Store base URI for ERC-1155 compliant uri function
         withdrawWallet = _ownerAddress; // withdrawWallet coincide con l'owner (deployer)
         creatorWallet = _creatorWalletAddress; // creatorWallet è passato come parametro
         creatorSharePercentage = 6; // Percentuale è ancora 6%
@@ -157,10 +161,10 @@ contract LHISA_LecceNFT is ERC1155URIStorage, Ownable {
         emit NFTMinted(msg.sender, tokenId, quantity, pricesInWei[tokenId], encryptedURIs[tokenId]);
     }
 
-    function uri(uint256 tokenId) public view override returns (string memory) {
+    function uri(uint256 tokenId) public view virtual override returns (string memory) {
         require(isValidTokenId[tokenId], "Invalid tokenId");
-        require(bytes(tokenCIDs[tokenId]).length > 0, "Invalid tokenId CID"); 
-        return string(abi.encodePacked("ipfs://", tokenCIDs[tokenId]));
+        // Questa è la versione che produce: ipfs://<baseuri>/<tokenid>.json
+        return string(abi.encodePacked(baseURI, Strings.toString(tokenId), ".json"));
     }
 
     function getEncryptedURI(uint256 tokenId) external view returns (string memory) {
