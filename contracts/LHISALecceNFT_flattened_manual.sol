@@ -193,7 +193,7 @@ library Math {
 
     function ceilDiv(uint256 a, uint256 b) internal pure returns (uint256) {
         if (b == 0) {
-        revert Panic.DIVISION_BY_ZERO();
+        Panic.panic(Panic.DIVISION_BY_ZERO);
         }
         unchecked {
             return (a + b - 1) / b;
@@ -207,10 +207,10 @@ library Math {
                 return low / denominator;
             }
             if (denominator == 0) {
-                revert Panic.DIVISION_BY_ZERO();
+                Panic.panic(Panic.DIVISION_BY_ZERO);
             }
             if (denominator <= high) {
-                 revert Panic.UNDER_OVERFLOW();
+                 Panic.panic(Panic.UNDER_OVERFLOW);
             }
 
             uint256 remainder;
@@ -248,7 +248,7 @@ library Math {
         unchecked {
             (uint256 high, uint256 low) = mul512(x, y);
             if (high >= (1 << n)) {
-                revert Panic.UNDER_OVERFLOW();
+                Panic.panic(Panic.UNDER_OVERFLOW);
             }
             return (high << (256 - n)) | (low >> n);
         }
@@ -285,7 +285,7 @@ library Math {
     function modExp(uint256 b, uint256 e, uint256 m) internal view returns (uint256) {
         (bool success, uint256 result) = tryModExp(b, e, m);
         if (!success) {
-            revert Panic.DIVISION_BY_ZERO();
+            Panic.panic(Panic.DIVISION_BY_ZERO);
         }
         return result;
     }
@@ -309,7 +309,7 @@ library Math {
     function modExp(bytes memory b, bytes memory e, bytes memory m) internal view returns (bytes memory) {
         (bool success, bytes memory result) = tryModExp(b, e, m);
         if (!success) {
-            revert Panic.DIVISION_BY_ZERO();
+            Panic.panic(Panic.DIVISION_BY_ZERO);
         }
         return result;
     }
