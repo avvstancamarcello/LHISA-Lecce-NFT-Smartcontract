@@ -1,5 +1,4 @@
 //SPDX-License-Identifier: MIT
-
 pragma solidity ^0.8.26; // Impostato alla recente versione 0.8.26 come da hardhat.config.cjs
 
 // Contenuto di node_modules/@openzeppelin/contracts/utils/Context.sol
@@ -194,7 +193,7 @@ library Math {
 
     function ceilDiv(uint256 a, uint256 b) internal pure returns (uint256) {
         if (b == 0) {
-            revert Panic.DIVISION_BY_ZERO;
+        revert Panic.DIVISION_BY_ZERO();
         }
         unchecked {
             return (a + b - 1) / b;
@@ -208,10 +207,10 @@ library Math {
                 return low / denominator;
             }
             if (denominator == 0) {
-                revert Panic.DIVISION_BY_ZERO;
+                revert Panic.DIVISION_BY_ZERO();
             }
             if (denominator <= high) {
-                 revert Panic.UNDER_OVERFLOW;
+                 revert Panic.UNDER_OVERFLOW();
             }
 
             uint256 remainder;
@@ -249,7 +248,7 @@ library Math {
         unchecked {
             (uint256 high, uint256 low) = mul512(x, y);
             if (high >= (1 << n)) {
-                revert Panic.UNDER_OVERFLOW;
+                revert Panic.UNDER_OVERFLOW();
             }
             return (high << (256 - n)) | (low >> n);
         }
@@ -286,7 +285,7 @@ library Math {
     function modExp(uint256 b, uint256 e, uint256 m) internal view returns (uint256) {
         (bool success, uint256 result) = tryModExp(b, e, m);
         if (!success) {
-            revert Panic.DIVISION_BY_ZERO;
+            revert Panic.DIVISION_BY_ZERO();
         }
         return result;
     }
@@ -310,7 +309,7 @@ library Math {
     function modExp(bytes memory b, bytes memory e, bytes memory m) internal view returns (bytes memory) {
         (bool success, bytes memory result) = tryModExp(b, e, m);
         if (!success) {
-            revert Panic.DIVISION_BY_ZERO;
+            revert Panic.DIVISION_BY_ZERO();
         }
         return result;
     }
@@ -1127,6 +1126,77 @@ abstract contract ERC1155 is Context, ERC165, IERC1155, IERC1155MetadataURI, IER
 }
 
 
+/**
+ * @dev String operations.
+ */
+library Strings {
+    bytes16 private constant _HEX_SYMBOLS = "0123456789abcdef";
+    uint8 private constant _ADDRESS_LENGTH = 20;
+
+    /**
+     * @dev Converts a `uint256` to its ASCII `string` decimal representation.
+     */
+    function toString(uint256 value) internal pure returns (string memory) {
+        // Inspired by OraclizeAPI's implementation - MIT licence
+        // https://github.com/oraclize/ethereum-api/blob/b42146b063c7d6ee1358846c198246239e9360e8/oraclizeAPI_0.4.25.sol
+        if (value == 0) {
+            return "0";
+        }
+        uint256 temp = value;
+        uint256 digits;
+        while (temp != 0) {
+            digits++;
+            temp /= 10;
+        }
+        bytes memory buffer = new bytes(digits);
+        while (value != 0) {
+            digits -= 1;
+            buffer[digits] = bytes1(uint8(48 + uint256(value % 10)));
+            value /= 10;
+        }
+        return string(buffer);
+    }
+
+    /**
+     * @dev Converts a `uint256` to its ASCII `string` hexadecimal representation.
+     */
+    function toHexString(uint256 value) internal pure returns (string memory) {
+        if (value == 0) {
+            return "0x00";
+        }
+        uint256 temp = value;
+        uint256 length = 0;
+        while (temp != 0) {
+            length++;
+            temp >>= 8;
+        }
+        return toHexString(value, length);
+    }
+
+    /**
+     * @dev Converts a `uint256` to its ASCII `string` hexadecimal representation with fixed length.
+     */
+    function toHexString(uint256 value, uint256 length) internal pure returns (string memory) {
+        bytes memory buffer = new bytes(2 * length + 2);
+        buffer[0] = "0";
+        buffer[1] = "x";
+        for (uint256 i = 2 * length + 1; i > 1; --i) {
+            buffer[i] = _HEX_SYMBOLS[value & 0xf];
+            value >>= 4;
+        }
+        require(value == 0, "Strings: hex length insufficient");
+        return string(buffer);
+    }
+
+    /**
+     * @dev Converts an `address` with fixed length of 20 bytes to its not checksummed ASCII `string` hexadecimal representation.
+     */
+    function toHexString(address addr) internal pure returns (string memory) {
+        return toHexString(uint256(uint160(addr)), _ADDRESS_LENGTH);
+    }
+}
+
+
 // Contenuto di node_modules/@openzeppelin/contracts/token/ERC1155/extensions/ERC1155URIStorage.sol
 abstract contract ERC1155URIStorage is ERC1155 {
     using Strings for uint256;
@@ -1150,11 +1220,6 @@ abstract contract ERC1155URIStorage is ERC1155 {
 
 
 // Contenuto di contracts/LHISALecceNFT.sol
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.26; // Pragma aggiornato a 0.8.26
-
-import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155URIStorage.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 
 // NOME DELLA CLASSE DEL CONTRATTO CORRETTO: con underscore
 contract LHISA_LecceNFT is ERC1155URIStorage, Ownable {
