@@ -9,7 +9,7 @@ if (!PRIVATE_KEY) {
 module.exports = {
   defaultNetwork: "hardhat", 
   solidity: {
-    version: "0.8.26", // La versione del tuo compilatore, deve essere esatta
+    version: "0.8.24", // La versione del tuo compilatore, deve essere esatta
     settings: {
       optimizer: {
         enabled: true, // Abilita l'ottimizzatore per il deploy in produzione
