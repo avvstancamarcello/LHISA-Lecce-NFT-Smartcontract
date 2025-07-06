@@ -393,4 +393,109 @@ describe("LHISA_LecceNFT", function () {
             expect(await contract.balanceOf(addr1.address, burnTokenId)).to.equal(quantityForBurnTest);
         });
     });
+
+    describe("EIP-2981 Royalty Standard", function () {
+        it("Dovrebbe inizializzare con royalty secondarie a 0%", async function () {
+            const [recipient, feeBps] = await contract.getRoyaltyInfo();
+            expect(recipient).to.equal("0x0000000000000000000000000000000000000000");
+            expect(feeBps).to.equal(0);
+        });
+
+        it("Dovrebbe permettere all'owner di impostare le royalty secondarie", async function () {
+            const newRecipient = creator.address;
+            const newFeeBps = 500; // 5%
+
+            await expect(contract.connect(owner).setRoyaltyInfo(newRecipient, newFeeBps))
+                .to.emit(contract, "RoyaltyInfoUpdated")
+                .withArgs(newRecipient, newFeeBps);
+
+            const [recipient, feeBps] = await contract.getRoyaltyInfo();
+            expect(recipient).to.equal(newRecipient);
+            expect(feeBps).to.equal(newFeeBps);
+        });
+
+        it("Dovrebbe impedire di impostare royalty superiori al 10%", async function () {
+            const newRecipient = creator.address;
+            const invalidFeeBps = 1001; // 10.01%
+
+            await expect(contract.connect(owner).setRoyaltyInfo(newRecipient, invalidFeeBps))
+                .to.be.revertedWith("Royalty fee cannot exceed 10%");
+        });
+
+        it("Dovrebbe impedire di impostare address zero come recipient", async function () {
+            const invalidRecipient = "0x0000000000000000000000000000000000000000";
+            const feeBps = 500;
+
+            await expect(contract.connect(owner).setRoyaltyInfo(invalidRecipient, feeBps))
+                .to.be.revertedWith("Royalty recipient cannot be zero address");
+        });
+
+        it("Dovrebbe impedire a non-owner di impostare le royalty", async function () {
+            const newRecipient = creator.address;
+            const newFeeBps = 500;
+
+            await expect(contract.connect(addr1).setRoyaltyInfo(newRecipient, newFeeBps))
+                .to.be.revertedWithCustomError(contract, "OwnableUnauthorizedAccount");
+        });
+
+        it("Dovrebbe calcolare correttamente le royalty con royaltyInfo", async function () {
+            const tokenId = 10;
+            const salePrice = hre.ethers.parseEther("1"); // 1 ETH
+            const recipient = creator.address;
+            const feeBps = 250; // 2.5%
+
+            // Imposta le royalty
+            await contract.connect(owner).setRoyaltyInfo(recipient, feeBps);
+
+            // Testa royaltyInfo
+            const [returnedRecipient, royaltyAmount] = await contract.royaltyInfo(tokenId, salePrice);
+            const expectedRoyalty = (salePrice * BigInt(feeBps)) / 10000n;
+
+            expect(returnedRecipient).to.equal(recipient);
+            expect(royaltyAmount).to.equal(expectedRoyalty);
+        });
+
+        it("Dovrebbe ritornare 0 royalty se non configurate", async function () {
+            const tokenId = 10;
+            const salePrice = hre.ethers.parseEther("1");
+
+            const [recipient, royaltyAmount] = await contract.royaltyInfo(tokenId, salePrice);
+            expect(recipient).to.equal("0x0000000000000000000000000000000000000000");
+            expect(royaltyAmount).to.equal(0);
+        });
+
+        it("Dovrebbe supportare l'interfaccia EIP-2981", async function () {
+            const IERC2981_INTERFACE_ID = "0x2a55205a"; // EIP-2981 interface ID
+            expect(await contract.supportsInterface(IERC2981_INTERFACE_ID)).to.be.true;
+        });
+
+        it("Dovrebbe mantenere compatibilità con ERC1155 supportsInterface", async function () {
+            const IERC1155_INTERFACE_ID = "0xd9b67a26"; // ERC1155 interface ID
+            const IERC165_INTERFACE_ID = "0x01ffc9a7"; // ERC165 interface ID
+            
+            expect(await contract.supportsInterface(IERC1155_INTERFACE_ID)).to.be.true;
+            expect(await contract.supportsInterface(IERC165_INTERFACE_ID)).to.be.true;
+        });
+
+        it("Dovrebbe verificare che royalty mint (6%) sia separata da royalty secondarie", async function () {
+            // Verifica che creatorSharePercentage rimanga 6%
+            expect(await contract.creatorSharePercentage()).to.equal(6);
+
+            // Imposta royalty secondarie al 3%
+            await contract.connect(owner).setRoyaltyInfo(creator.address, 300);
+
+            // Verifica che siano indipendenti
+            expect(await contract.creatorSharePercentage()).to.equal(6);
+            const [, feeBps] = await contract.getRoyaltyInfo();
+            expect(feeBps).to.equal(300);
+        });
+
+        it("Dovrebbe revertire per token ID non valido in royaltyInfo", async function () {
+            const invalidTokenId = 999;
+            const salePrice = hre.ethers.parseEther("1");
+
+            await expect(contract.royaltyInfo(invalidTokenId, salePrice))
+                .to.be.revertedWith("Token ID not valid");
+        });
+    });
 });

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.26;
+pragma solidity ^0.8.24;
 
 // Sources flattened with hardhat v2.25.0 https://hardhat.org
 // File @openzeppelin/contracts/utils/Context.sol@v5.3.0

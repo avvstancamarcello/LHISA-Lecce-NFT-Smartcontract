@@ -1,6 +1,6 @@
 //SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.26; // Impostato alla recente versione 0.8.26 come da hardhat.config.cjs
+pragma solidity ^0.8.24; // Impostato alla versione 0.8.24 come da hardhat.config.cjs
 
 // Contenuto di node_modules/@openzeppelin/contracts/utils/Context.sol
 abstract contract Context {
@@ -21,6 +21,24 @@ abstract contract Context {
 // Contenuto di node_modules/@openzeppelin/contracts/utils/introspection/IERC165.sol
 interface IERC165 {
     function supportsInterface(bytes4 interfaceId) external view returns (bool);
+}
+
+
+// Contenuto di node_modules/@openzeppelin/contracts/interfaces/IERC2981.sol
+// EIP-2981: NFT Royalty Standard - Standard for royalty payments for NFTs
+interface IERC2981 {
+    /**
+     * @dev Called with the sale price to determine how much royalty
+     *      is owed and to whom.
+     * @param tokenId - the NFT asset queried for royalty information
+     * @param salePrice - the sale price of the NFT asset specified by tokenId
+     * @return receiver - address of who should be sent the royalty payment
+     * @return royaltyAmount - the royalty payment amount for salePrice
+     */
+    function royaltyInfo(uint256 tokenId, uint256 salePrice)
+        external
+        view
+        returns (address receiver, uint256 royaltyAmount);
 }
 
 
@@ -1151,13 +1169,85 @@ abstract contract ERC1155URIStorage is ERC1155 {
 
 // Contenuto di contracts/LHISALecceNFT.sol
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.26; // Pragma aggiornato a 0.8.26
+pragma solidity ^0.8.24; // Pragma aggiornato a 0.8.24
 
 import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155URIStorage.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
+/**
+ * @title LHISA-Lecce NFT Smart Contract
+ * @dev Contratto intelligente per NFT LHISA Coin - Creati per curare e guarire DEPRESSIONE
+ * 
+ * =============================================================================
+ * DOCUMENTAZIONE TECNICA E SVILUPPO
+ * =============================================================================
+ * 
+ * Questo smart contract è il risultato di 7 mesi intensivi di studio e sviluppo,
+ * utilizzando un approccio multidisciplinare e tecnologie all'avanguardia:
+ * 
+ * LINGUAGGI E TECNOLOGIE UTILIZZATE:
+ * • Solidity (Smart Contract development)
+ * • Linux (Sistema operativo di sviluppo)  
+ * • Java (Backend e strumenti di supporto)
+ * • HTML (Interfacce web e documentazione)
+ * 
+ * STANDARD E PROTOCOLLI:
+ * • ERC-1155 (Multi-token standard per NFT ed token fungibili)
+ * • EIP-2981 (Standard royalty per vendite secondarie)
+ * • IPFS (InterPlanetary File System per storage decentralizzato)
+ * 
+ * STRUMENTI DI SVILUPPO:
+ * • VS Code (Editor principale con estensioni Solidity)
+ * • GIMP (Elaborazione grafica e watermark invisibili)
+ * • Hardhat (Framework di sviluppo Ethereum)
+ * • OpenZeppelin (Librerie sicure per smart contract)
+ * 
+ * INTELLIGENZE ARTIFICIALI UTILIZZATE:
+ * • GitHub Copilot (Assistenza alla programmazione)
+ * • ChatGPT (Problem solving e documentazione) 
+ * • Gemini (Ottimizzazione codice e review)
+ * • Grok (Debugging e test avanzati)
+ * • Deep Seek (Analisi sicurezza e best practices)
+ * 
+ * SUPERAMENTO SFIDE TECNICHE:
+ * • Risoluzione di bug critici delle AI nelle implementazioni
+ * • Armonizzazione tra diversi linguaggi di programmazione
+ * • Sincronizzazione di più software e dipendenze
+ * • Autentica cura per la produzione di codice di qualità
+ * • Implementazione di watermark invisibili nelle immagini
+ * • Gestione e pubblicazione dei CID IPFS per metadati decentralizzati
+ * 
+ * =============================================================================
+ * GESTIONE ROYALTIES - DOPPIO SISTEMA
+ * =============================================================================
+ * 
+ * Questo contratto implementa un sistema avanzato di royalties con due meccanismi distinti:
+ * 
+ * 1. ROYALTY SUL MINT (creatorSharePercentage): 
+ *    - Percentuale fissa al 6% sui ricavi del mint
+ *    - Pagata direttamente al creator durante l'acquisto
+ *    - Non modificabile dopo il deploy per garantire trasparenza
+ *    - Gestita dalla funzione mintNFT
+ * 
+ * 2. ROYALTY SULLE VENDITE SECONDARIE (EIP-2981):
+ *    - Standard compatibile con OpenSea e altri marketplace
+ *    - Inizialmente impostata a 0% per incentivare la fase di lancio
+ *    - Modificabile dall'owner tramite setRoyaltyInfo(address,uint96)
+ *    - Limite massimo del 10% per proteggere i trader
+ *    - Separata e indipendente dalla royalty sul mint
+ * 
+ * Questa separazione garantisce:
+ * • Trasparenza sui costi al momento del mint
+ * • Flessibilità per la gestione del mercato secondario
+ * • Conformità agli standard del settore
+ * • Protezione degli investitori con limiti chiari
+ * 
+ * =============================================================================
+ */
+
 // NOME DELLA CLASSE DEL CONTRATTO CORRETTO: con underscore
-contract LHISA_LecceNFT is ERC1155URIStorage, Ownable {
+// Contratto principale LHISA-Lecce NFT con supporto completo EIP-2981 per royalties secondarie
+contract LHISA_LecceNFT is ERC1155URIStorage, Ownable, IERC2981 {
     string public name = "LHISA-LecceNFT"; // Nome pubblico del token/collezione (con trattino)
     string public symbol = "LHISA"; // Simbolo pubblico del token
 
@@ -1170,6 +1260,11 @@ contract LHISA_LecceNFT is ERC1155URIStorage, Ownable {
 
     address public withdrawWallet;
     address public creatorWallet;
+    uint256 public creatorSharePercentage; // Royalty sul mint (6%) - separata da EIP-2981
+    
+    // Variabili private per EIP-2981 royalties sulle vendite secondarie
+    address private _royaltyRecipient;
+    uint96 private _royaltyFeeBps; // Base Points (1/100 di 1%) - max 1000 = 10%
     uint256 public creatorSharePercentage;
 
     struct Proposal {
@@ -1222,8 +1317,12 @@ contract LHISA_LecceNFT is ERC1155URIStorage, Ownable {
 
         withdrawWallet = _ownerAddress; // withdrawWallet coincide con l'owner (deployer)
         creatorWallet = _creatorWalletAddress; // creatorWallet è passato come parametro
-        creatorSharePercentage = 6; // Percentuale è ancora 6%
+        creatorSharePercentage = 6; // Percentuale sul mint fissa al 6% (distinta da EIP-2981)
         nextProposalId = 0; // Inizializzazione di nextProposalId CORRETTA
+        
+        // Inizializzazione EIP-2981: royalty secondarie a 0 per incentivare la fase di lancio
+        _royaltyRecipient = address(0); // Nessun ricevente inizialmente
+        _royaltyFeeBps = 0; // 0% di royalty inizialmente - può essere modificato via setRoyaltyInfo
 
         // --- Definizione dei prezzi, maxSupply (2000) e tokenId validi ---
         // Questo blocco DEVE essere all'interno del costruttore
@@ -1468,4 +1567,82 @@ contract LHISA_LecceNFT is ERC1155URIStorage, Ownable {
     function onlyOwnerFunction() external view {
         require(msg.sender == owner(), "Ownable: caller is not the owner");
     }
+
+    // =============================================================================
+    // EIP-2981 ROYALTY STANDARD IMPLEMENTATION
+    // =============================================================================
+    
+    /**
+     * @dev Implementazione EIP-2981 per royalties sulle vendite secondarie
+     * Questa funzione è separata e distinta dalla royalty sul mint (creatorSharePercentage)
+     * che rimane fissa al 6% e viene gestita nella funzione mintNFT.
+     * 
+     * @param tokenId ID del token per cui si richiede la royalty
+     * @param salePrice Prezzo di vendita del token
+     * @return receiver Indirizzo del ricevente della royalty
+     * @return royaltyAmount Importo della royalty da pagare
+     */
+    function royaltyInfo(uint256 tokenId, uint256 salePrice)
+        external
+        view
+        override
+        returns (address receiver, uint256 royaltyAmount)
+    {
+        // Verifica che il token sia valido (opzionale per EIP-2981)
+        require(isValidTokenId[tokenId], "Token ID not valid");
+        
+        if (_royaltyRecipient == address(0) || _royaltyFeeBps == 0) {
+            return (address(0), 0);
+        }
+        
+        // Calcola la royalty in base ai basis points (1/100 di 1%)
+        royaltyAmount = (salePrice * _royaltyFeeBps) / 10000;
+        return (_royaltyRecipient, royaltyAmount);
+    }
+    
+    /**
+     * @dev Imposta le informazioni di royalty per le vendite secondarie (solo owner)
+     * Questa funzione permette all'owner di modificare la percentuale di royalty
+     * dopo il deploy, inizialmente impostata a 0 per incentivare la fase di lancio.
+     * 
+     * @param recipient Indirizzo del ricevente delle royalties
+     * @param feeBps Percentuale in basis points (max 1000 = 10%)
+     */
+    function setRoyaltyInfo(address recipient, uint96 feeBps) external onlyOwner {
+        require(feeBps <= 1000, "Royalty fee cannot exceed 10%"); // Max 10%
+        require(recipient != address(0), "Royalty recipient cannot be zero address");
+        
+        _royaltyRecipient = recipient;
+        _royaltyFeeBps = feeBps;
+        
+        emit RoyaltyInfoUpdated(recipient, feeBps);
+    }
+    
+    /**
+     * @dev Ritorna le informazioni di royalty attuali
+     * @return recipient Indirizzo del ricevente delle royalties
+     * @return feeBps Percentuale in basis points
+     */
+    function getRoyaltyInfo() external view returns (address recipient, uint96 feeBps) {
+        return (_royaltyRecipient, _royaltyFeeBps);
+    }
+    
+    /**
+     * @dev Override della funzione supportsInterface per includere EIP-2981
+     * Mantiene la compatibilità con ERC1155 e aggiunge supporto per royalties
+     */
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        virtual
+        override(ERC1155URIStorage, IERC165)
+        returns (bool)
+    {
+        return
+            interfaceId == type(IERC2981).interfaceId ||
+            super.supportsInterface(interfaceId);
+    }
+    
+    // Evento per notificare aggiornamenti delle royalty info
+    event RoyaltyInfoUpdated(address indexed recipient, uint96 feeBps);
 }
