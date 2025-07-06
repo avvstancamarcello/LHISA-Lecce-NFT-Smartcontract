@@ -4639,16 +4639,51 @@ contract LHISA_LecceNFT is ERC1155URIStorage, Ownable {
         emit BaseURIUpdated(newBaseURI);
     }
 
+    /**
+     * @dev Sets the CID (Content Identifier) for a specific token ID.
+     * @notice OWNER-ONLY FUNCTION: Only the contract owner can update token CIDs.
+     * This function enables the Authenticity Policy by allowing the owner to:
+     * - Associate public IPFS images with steganographic markings
+     * - Update content while maintaining authenticity verification
+     * - Link password-protected steganographic content for verification
+     * @param tokenId The ID of the token to update
+     * @param cid The new IPFS CID to associate with the token
+     * @custom:security Only the owner can call this function to prevent unauthorized content modifications
+     * @custom:authenticity This function supports the reinforced authenticity policy where owners
+     * can associate IPFS images with steganographic markings revealable via password
+     */
     function setTokenCID(uint256 tokenId, string memory cid) external onlyOwner {
         require(isValidTokenId[tokenId], "TokenId not valid for setting CID"); 
         tokenCIDs[tokenId] = cid;
     }
 
+    /**
+     * @dev Sets the encrypted URI for a specific token ID.
+     * @notice OWNER-ONLY FUNCTION: Only the contract owner can update encrypted URIs.
+     * This function works in conjunction with setTokenCID to provide dual-layer content management:
+     * - Public CID (via setTokenCID) for general access and verification
+     * - Encrypted URI for additional security layers or private content
+     * @param tokenId The ID of the token to update
+     * @param uri_ The new encrypted URI to associate with the token
+     * @custom:security Owner-only access prevents unauthorized modifications
+     * @custom:authenticity Supports authenticity verification through controlled content updates
+     */
     function setEncryptedURI(uint256 tokenId, string memory uri_) external onlyOwner {
         require(isValidTokenId[tokenId], "TokenId not valid for setting encrypted URI");
         encryptedURIs[tokenId] = uri_;
     }
 
+    /**
+     * @dev Creates a new governance proposal for NFT holder voting.
+     * @notice OWNER-ONLY FUNCTION: Only the contract owner can create proposals.
+     * @param _description Text description of the proposal for voters to understand
+     * @param _durationInDays Duration of the voting period in days
+     * @param _allowNewMintsToVote If true, new NFT purchases during voting automatically vote "yes"
+     * @return proposalId The unique identifier for the created proposal
+     * @custom:governance This enables decentralized decision-making for the NFT community
+     * @custom:examples Typical use cases include: changing creator percentages, updating prices,
+     * approving new features, or making partnership decisions
+     */
     function createProposal(string memory _description, uint256 _durationInDays, bool _allowNewMintsToVote) external onlyOwner returns (uint256) {
         require(bytes(_description).length > 0, "Description cannot be empty");
         require(_durationInDays > 0, "Duration must be at least one day");
@@ -4668,6 +4703,18 @@ contract LHISA_LecceNFT is ERC1155URIStorage, Ownable {
         return proposalId;
     }
 
+    /**
+     * @dev Allows NFT holders to vote on active proposals.
+     * @notice HOLDER-ONLY FUNCTION: Only addresses holding at least one NFT can vote.
+     * @param _proposalId The ID of the proposal to vote on
+     * @param _vote True for "yes", false for "no"
+     * @custom:governance Each holder gets exactly one vote per proposal, regardless of NFT quantity
+     * @custom:onchain-logic The function verifies NFT ownership across all valid token IDs (5-100),
+     * checks voting period validity, and prevents double voting
+     * @custom:examples 
+     * - Vote yes on proposal 0: vote(0, true)
+     * - Vote no on proposal 1: vote(1, false)
+     */
     function vote(uint256 _proposalId, bool _vote) external { // <--- Funzione vote come ESTERNA
         Proposal storage proposal = proposals[_proposalId];
         
@@ -4676,6 +4723,7 @@ contract LHISA_LecceNFT is ERC1155URIStorage, Ownable {
         require(block.timestamp <= proposal.endTime, "Voting has ended");
         require(!hasVoted[_proposalId][msg.sender], "You have already voted on this proposal");
 
+        // On-chain logic: Verify NFT ownership across all valid token types
         uint256 totalNFTsOwned = 0;
         for (uint256 i = 5; i <= 100; i += 5) {
             totalNFTsOwned += balanceOf(msg.sender, i);
@@ -4692,6 +4740,13 @@ contract LHISA_LecceNFT is ERC1155URIStorage, Ownable {
         emit Voted(_proposalId, msg.sender, _vote);
     }
 
+    /**
+     * @dev Ends an active proposal after its voting period has expired.
+     * @notice OWNER-ONLY FUNCTION: Only the contract owner can end proposals.
+     * @param _proposalId The ID of the proposal to end
+     * @custom:governance This function finalizes voting results and makes them immutable
+     * @custom:timing Can only be called after the proposal's endTime has passed
+     */
     function endProposal(uint256 _proposalId) external onlyOwner {
         Proposal storage proposal = proposals[_proposalId];
         require(proposal.active, "Proposal is not active");
@@ -4699,6 +4754,16 @@ contract LHISA_LecceNFT is ERC1155URIStorage, Ownable {
         proposal.active = false; 
     }
 
+    /**
+     * @dev Returns the complete results and details of a proposal.
+     * @param _proposalId The ID of the proposal to query
+     * @return description The text description of the proposal
+     * @return yesVotes Total number of "yes" votes received
+     * @return noVotes Total number of "no" votes received  
+     * @return active Whether the proposal is still active for voting
+     * @return endTime Unix timestamp when voting ends/ended
+     * @custom:governance This provides transparent access to all proposal information
+     */
     function getProposalResults(uint256 _proposalId) external view returns (string memory description, uint256 yesVotes, uint256 noVotes, bool active, uint256 endTime) {
         Proposal storage proposal = proposals[_proposalId];
         return (proposal.description, proposal.yesVotes, proposal.noVotes, proposal.active, proposal.endTime);

@@ -70,6 +70,14 @@ async function main() {
     }
   }
   console.log("------------------------------------------");
+  console.log("🎉 Deploy completato con successo!");
+  console.log("📚 Caratteristiche principali implementate:");
+  console.log("   • Sistema di autenticità rafforzata con gestione CID owner-only");
+  console.log("   • Governance decentralizzata per holder NFT");
+  console.log("   • Verifica steganografica per autenticità delle immagini");
+  console.log("   • Revenue sharing automatico tra owner e creator");
+  console.log("📖 Consulta il README.md per la documentazione completa");
+  console.log("------------------------------------------");
 }
 
 main()
